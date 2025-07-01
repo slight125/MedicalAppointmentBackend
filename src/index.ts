@@ -5,9 +5,13 @@ import dotenv from "dotenv";
 import registerRoute from "./routes/auth/register";
 import loginRoute from "./routes/auth/login";
 import adminStatsRoute from "./routes/admin/stats";
+import adminAnalyticsRoute from "./routes/admin/analytics";
 import userDashboard from "./routes/user/dashboard";
 import doctorDashboard from "./routes/doctor/dashboard";
 import appointmentRoute from "./routes/appointments/book";
+import appointmentsRoute from "./routes/appointments/index";
+import prescriptionsRoute from "./routes/prescriptions/index";
+import supportRoutes from "./routes/support/index";
 
 dotenv.config();
 
@@ -19,9 +23,13 @@ app.use(express.json());
 app.use("/api/auth", registerRoute);
 app.use("/api/auth", loginRoute);
 app.use("/api/admin", adminStatsRoute);
+app.use("/api/admin/analytics", adminAnalyticsRoute);
 app.use("/api/user", userDashboard);
 app.use("/api/doctor", doctorDashboard);
 app.use("/api/appointments", appointmentRoute);
+app.use("/api/appointments", appointmentsRoute);
+app.use("/api/prescriptions", prescriptionsRoute);
+app.use("/api/support", supportRoutes);
 
 app.get("/", (_, res) => {
   res.send("🏥 Medical Appointment API is alive!");
