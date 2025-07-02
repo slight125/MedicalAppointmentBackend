@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { Request, Response, NextFunction } from "express";
 import { db } from "../config/db";
 import { users } from "../models/schema";
+import { transporter } from "../utils/mailer";
 
 export const registerUser = async (req: Request, res: Response) => {
   const { firstname, lastname, email, password, contact_phone, address } = req.body;
@@ -23,7 +24,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert user into the database
-    await db.insert(users).values({
+    const [newUser] = await db.insert(users).values({
       firstname,
       lastname,
       email,
@@ -31,7 +32,21 @@ export const registerUser = async (req: Request, res: Response) => {
       contact_phone,
       address,
       role: "user",
-    });
+    }).returning();
+
+    // Send welcome email
+    if (newUser.email) {
+      await transporter.sendMail({
+        from: `"Teach2Give Welcome" <${process.env.EMAIL_USER}>`,
+        to: newUser.email,
+        subject: "Welcome to Teach2Give 👋",
+        html: `
+          <h2>Hi ${newUser.firstname || "there"}!</h2>
+          <p>Your account has been created successfully. You can now log in and book appointments with ease.</p>
+          <p>Thank you for joining our healthcare journey!</p>
+        `
+      });
+    }
 
     res.status(201).json({ message: "User registered successfully 🚀" });
   } catch (error) {

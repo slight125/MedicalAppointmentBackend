@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { db } from "../config/db";
-import { complaints } from "../models/schema";
+import { complaints, users } from "../models/schema";
 import { eq } from "drizzle-orm";
+import { transporter } from "../utils/mailer";
 
 interface AuthRequest extends Request {
   user?: {
@@ -30,6 +31,25 @@ export const submitComplaint = async (req: AuthRequest, res: Response): Promise<
       status: "Open"
     });
 
+    // Notify all admins about the new complaint
+    const admins = await db.query.users.findMany({ 
+      where: eq(users.role, "admin") 
+    });
+
+    for (const admin of admins) {
+      if (admin.email) {
+        await transporter.sendMail({
+          from: `"Teach2Give Alerts" <${process.env.EMAIL_USER}>`,
+          to: admin.email,
+          subject: "🆘 New Support Ticket Submitted",
+          html: `
+            <p>User #${user_id} submitted a new complaint: <strong>${subject}</strong></p>
+            <p>Please review it on the admin panel.</p>
+          `
+        });
+      }
+    }
+
     res.status(201).json({ message: "Complaint submitted" });
   } catch (err) {
     console.error("Error submitting complaint:", err);
@@ -56,6 +76,25 @@ export const updateComplaintStatus = async (req: Request, res: Response): Promis
     await db.update(complaints)
       .set({ status })
       .where(eq(complaints.complaint_id, complaintId));
+
+    // Send email notification if complaint is resolved
+    const complaint = await db.query.complaints.findFirst({
+      where: eq(complaints.complaint_id, complaintId),
+      with: { user: true }
+    });
+
+    if (complaint?.status === "Resolved" && complaint?.user?.email) {
+      await transporter.sendMail({
+        from: `"Teach2Give Support" <${process.env.EMAIL_USER}>`,
+        to: complaint.user.email,
+        subject: "Your Support Ticket has been Resolved",
+        html: `
+          <h2>Resolved ✅</h2>
+          <p>Hi ${complaint.user.firstname || "User"},</p>
+          <p>Your ticket titled <strong>"${complaint.subject}"</strong> has been marked as resolved. Feel free to reach out if anything persists.</p>
+        `
+      });
+    }
 
     res.status(200).json({ message: "Complaint status updated" });
   } catch (err) {

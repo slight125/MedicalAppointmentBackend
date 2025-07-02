@@ -2,7 +2,10 @@ import express from "express";
 import {
   getUserAppointments,
   getDoctorAppointments,
-  bookAppointment
+  bookAppointment,
+  updateAppointmentStatus,
+  cancelAppointment,
+  adminUpdateAppointmentStatus
 } from "../../controllers/appointmentsController";
 import { verifyToken, requireRole } from "../../middleware/authMiddleware";
 
@@ -23,5 +26,14 @@ router.get("/user", requireRole("user"), asyncHandler(getUserAppointments));
 
 // Get doctor's appointments
 router.get("/doctor", requireRole("doctor"), asyncHandler(getDoctorAppointments));
+
+// Update appointment status (doctor only)
+router.patch("/:id/status", requireRole("doctor"), asyncHandler(updateAppointmentStatus));
+
+// Cancel appointment (user only)
+router.patch("/:id/cancel", requireRole("user"), asyncHandler(cancelAppointment));
+
+// Admin override appointment status (admin only)
+router.patch("/:id/override", requireRole("admin"), asyncHandler(adminUpdateAppointmentStatus));
 
 export default router;

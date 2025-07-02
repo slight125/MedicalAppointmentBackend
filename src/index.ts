@@ -12,6 +12,9 @@ import appointmentRoute from "./routes/appointments/book";
 import appointmentsRoute from "./routes/appointments/index";
 import prescriptionsRoute from "./routes/prescriptions/index";
 import supportRoutes from "./routes/support/index";
+import paymentsRoute from "./routes/payments"; 
+import adminRevenueRoute from "./routes/admin/revenue";
+import testEmailRoute from "./routes/testEmail";
 
 dotenv.config();
 
@@ -30,6 +33,9 @@ app.use("/api/appointments", appointmentRoute);
 app.use("/api/appointments", appointmentsRoute);
 app.use("/api/prescriptions", prescriptionsRoute);
 app.use("/api/support", supportRoutes);
+app.use("/api/payments", paymentsRoute);
+app.use("/api/admin/revenue", adminRevenueRoute);
+app.use("/api/test", testEmailRoute);
 
 app.get("/", (_, res) => {
   res.send("🏥 Medical Appointment API is alive!");
@@ -39,3 +45,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🔥 Server ready at http://localhost:${PORT}`);
 });
+
+
+
+
+
