@@ -32,7 +32,10 @@ export const createPaymentSession = async (req: Request, res: Response): Promise
       }],
       mode: "payment",
       success_url: "http://localhost:3000/payment-success",
-      cancel_url: "http://localhost:3000/payment-cancel"
+      cancel_url: "http://localhost:3000/payment-cancel",
+      metadata: {
+        appointment_id: appointment_id.toString()
+      }
     });
 
     res.status(200).json({ url: session.url });

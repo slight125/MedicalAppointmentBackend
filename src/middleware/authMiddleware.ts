@@ -38,3 +38,13 @@ export const requireRole = (role: string): RequestHandler => {
     next();
   };
 };
+
+export const allowRoles = (...roles: string[]): RequestHandler => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403).json({ message: "You do not have permission to perform this action" });
+      return;
+    }
+    next();
+  };
+};

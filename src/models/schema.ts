@@ -7,6 +7,7 @@ import {
   date,
   decimal,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -45,6 +46,7 @@ export const appointments = pgTable("appointments", {
   time_slot: varchar("time_slot", { length: 50 }),
   total_amount: decimal("total_amount", { precision: 10, scale: 2 }),
   appointment_status: varchar("appointment_status", { length: 20 }), // Pending, Confirmed, Cancelled
+  paid: boolean("paid").default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -55,7 +57,9 @@ export const prescriptions = pgTable("prescriptions", {
   appointment_id: integer("appointment_id").references(() => appointments.appointment_id),
   doctor_id: integer("doctor_id").references(() => doctors.doctor_id),
   patient_id: integer("patient_id").references(() => users.user_id),
+  medicines: text("medicines"), // JSON string of medicines array
   notes: text("notes"),
+  issued_at: timestamp("issued_at"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });

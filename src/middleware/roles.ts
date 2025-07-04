@@ -9,10 +9,11 @@ interface AuthenticatedRequest extends Request {
 }
 
 export const allowRoles = (...roles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     const userRole = req.user?.role;
     if (!roles.includes(userRole || "")) {
-      return res.status(403).json({ message: "Access denied" });
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
     next();
   };
