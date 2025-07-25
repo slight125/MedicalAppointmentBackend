@@ -6,6 +6,7 @@ CREATE TABLE "appointments" (
 	"time_slot" varchar(50),
 	"total_amount" numeric(10, 2),
 	"appointment_status" varchar(20),
+	"paid" boolean DEFAULT false,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );
@@ -48,7 +49,9 @@ CREATE TABLE "prescriptions" (
 	"appointment_id" integer,
 	"doctor_id" integer,
 	"patient_id" integer,
+	"medicines" text,
 	"notes" text,
+	"issued_at" timestamp,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now()
 );

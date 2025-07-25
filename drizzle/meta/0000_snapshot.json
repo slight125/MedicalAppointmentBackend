@@ -1,5 +1,5 @@
 {
-  "id": "8d6fc2b6-e0aa-44c3-a335-239e8e096f69",
+  "id": "245de54e-cd2f-4477-8a8f-006a5271976e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -49,6 +49,13 @@
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
+        },
+        "paid": {
+          "name": "paid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -358,9 +365,21 @@
           "primaryKey": false,
           "notNull": false
         },
+        "medicines": {
+          "name": "medicines",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "notes": {
           "name": "notes",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "issued_at": {
+          "name": "issued_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },

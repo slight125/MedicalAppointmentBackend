@@ -76,6 +76,7 @@ export const getUserPrescriptions = async (req: AuthenticatedRequest, res: Respo
     const result = await db
       .select({
         prescription_id: prescriptions.prescription_id,
+        appointment_id: prescriptions.appointment_id,
         medicines: prescriptions.medicines,
         notes: prescriptions.notes,
         issued_at: prescriptions.issued_at,
@@ -309,3 +310,90 @@ export const downloadPrescriptionPDF = async (req: AuthenticatedRequest, res: Re
     res.status(500).json({ message: "Failed to generate prescription PDF" });
   }
 };
+
+export const updatePrescription = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { medicines, notes } = req.body;
+  const userId = req.user?.user_id;
+  const userRole = req.user?.role;
+  try {
+    const [presc] = await db.select().from(prescriptions).where(eq(prescriptions.prescription_id, parseInt(id)));
+    if (!presc) {
+      res.status(404).json({ message: "Prescription not found" });
+      return;
+    }
+    if (userRole !== "admin" && presc.doctor_id !== userId) {
+      res.status(403).json({ message: "Unauthorized" });
+      return;
+    }
+    const updateData: any = {};
+    if (medicines !== undefined) updateData.medicines = JSON.stringify(medicines);
+    if (notes !== undefined) updateData.notes = notes;
+    updateData.updated_at = new Date();
+    await db.update(prescriptions).set(updateData).where(eq(prescriptions.prescription_id, parseInt(id)));
+    res.status(200).json({ message: "Prescription updated" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update prescription" });
+  }
+};
+
+export const deletePrescription = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const userId = req.user?.user_id;
+  const userRole = req.user?.role;
+  try {
+    const [presc] = await db.select().from(prescriptions).where(eq(prescriptions.prescription_id, parseInt(id)));
+    if (!presc) {
+      res.status(404).json({ message: "Prescription not found" });
+      return;
+    }
+    if (userRole !== "admin" && presc.doctor_id !== userId) {
+      res.status(403).json({ message: "Unauthorized" });
+      return;
+    }
+    await db.delete(prescriptions).where(eq(prescriptions.prescription_id, parseInt(id)));
+    res.status(200).json({ message: "Prescription deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete prescription" });
+  }
+};
+
+// Admin: Get all prescriptions
+export const getAllPrescriptions = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+    const result = await db
+      .select({
+        prescription_id: prescriptions.prescription_id,
+        appointment_id: prescriptions.appointment_id,
+        doctor_id: prescriptions.doctor_id,
+        patient_id: prescriptions.patient_id,
+        medicines: prescriptions.medicines,
+        notes: prescriptions.notes,
+        issued_at: prescriptions.issued_at,
+        created_at: prescriptions.created_at,
+        appointment_date: appointments.appointment_date,
+        appointment_time: appointments.time_slot,
+        doctor_name: users.firstname,
+        doctor_lastname: users.lastname,
+        patient_name: users.firstname,
+        patient_lastname: users.lastname
+      })
+      .from(prescriptions)
+      .innerJoin(appointments, eq(prescriptions.appointment_id, appointments.appointment_id))
+      .innerJoin(users, eq(prescriptions.doctor_id, users.user_id)); // doctor info
+    // Note: For patient info, a second join or query may be needed for full names
+    // Parse medicines JSON for each prescription
+    const formattedResult = result.map(prescription => ({
+      ...prescription,
+      medicines: prescription.medicines ? JSON.parse(prescription.medicines) : null
+    }));
+    res.status(200).json(formattedResult);
+  } catch (err) {
+    console.error('❌ Error fetching all prescriptions:', err);
+    res.status(500).json({ message: 'Failed to fetch all prescriptions' });
+  }
+}

@@ -5,7 +5,10 @@ import {
   getUserById, 
   updateUser, 
   deleteUser,
-  searchUsers
+  searchUsers,
+  createDoctor,
+  updateDoctor,
+  deleteDoctor
 } from "../../controllers/adminController";
 
 const router = express.Router();
@@ -24,5 +27,10 @@ router.patch("/users/:id", verifyToken, allowRoles("admin"), updateUser);
 
 // DELETE /api/admin/users/:id - Delete user (admin only)
 router.delete("/users/:id", verifyToken, allowRoles("admin"), deleteUser);
+
+// Doctor CRUD (admin only)
+router.post("/doctors", verifyToken, allowRoles("admin"), createDoctor);
+router.patch("/doctors/:id", verifyToken, allowRoles("admin"), updateDoctor);
+router.delete("/doctors/:id", verifyToken, allowRoles("admin"), deleteDoctor);
 
 export default router;

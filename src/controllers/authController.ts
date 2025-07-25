@@ -37,9 +37,9 @@ export const registerUser = async (req: Request, res: Response) => {
     // Send welcome email
     if (newUser.email) {
       await transporter.sendMail({
-        from: `"Teach2Give Welcome" <${process.env.EMAIL_USER}>`,
+        from: `"SlightTech Medicare Welcome" <${process.env.EMAIL_USER}>`,
         to: newUser.email,
-        subject: "Welcome to Teach2Give 👋",
+        subject: "Welcome to Medicare 👋",
         html: `
           <h2>Hi ${newUser.firstname || "there"}!</h2>
           <p>Your account has been created successfully. You can now log in and book appointments with ease.</p>
@@ -48,7 +48,12 @@ export const registerUser = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(201).json({ message: "User registered successfully 🚀" });
+    // Remove password before sending user object
+    const { password: _pw, ...userWithoutPassword } = newUser;
+    res.status(201).json({
+      message: "User registered successfully 🚀",
+      user: userWithoutPassword
+    });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ message: "Registration failed due to a server error." });
@@ -78,7 +83,19 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       { expiresIn: "2h" }
     );
 
-    res.status(200).json({ message: "Login successful 🎉", token });
+    res.status(200).json({ 
+      message: "Login successful 🎉", 
+      token,
+      user: {
+        user_id: user[0].user_id,
+        email: user[0].email,
+        firstname: user[0].firstname,
+        lastname: user[0].lastname,
+        role: user[0].role,
+        contact_phone: user[0].contact_phone,
+        address: user[0].address
+      }
+    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Login failed due to a server error." });

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../config/db";
-import { appointments, users } from "../models/schema";
+import { appointments, users, doctors } from "../models/schema";
 import { eq, and } from "drizzle-orm";
 import { transporter } from "../utils/mailer";
 
@@ -35,21 +35,23 @@ export const bookAppointment = async (req: Request, res: Response) => {
       appointment_status: "Pending"
     }).returning();
 
-    // Send confirmation email to user
+    // Get user and doctor details for email
     const user = await db.query.users.findFirst({ 
       where: eq(users.user_id, user_id) 
     });
+    const doctor = await db.query.doctors.findFirst({
+      where: eq(doctors.doctor_id, doctor_id)
+    });
 
     if (user?.email) {
-      await transporter.sendMail({
-        from: `"Teach2Give Care" <${process.env.EMAIL_USER}>`,
-        to: user.email,
-        subject: "Appointment Confirmed",
-        html: `
-          <h2>Appointment Confirmed ✅</h2>
-          <p>Your appointment with Doctor #${doctor_id} on <strong>${appointment_date}</strong> at <strong>${time_slot}</strong> has been successfully booked.</p>
-          <p>Looking forward to serving you!</p>
-        `
+      await sendAppointmentConfirmation({
+        userEmail: user.email,
+        userName: `${user.firstname} ${user.lastname}`,
+        doctorName: `${doctor?.first_name} ${doctor?.last_name}`,
+        date: appointment_date,
+        timeSlot: time_slot,
+        amount: total_amount,
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard/appointments/${appointment.appointment_id}`,
       });
     }
 
@@ -138,15 +140,13 @@ export const updateAppointmentStatus = async (req: AuthenticatedRequest, res: Re
       .leftJoin(users, eq(users.user_id, appointments.user_id));
 
     if (appt?.users?.email) {
-      await transporter.sendMail({
-        from: `"Teach2Give" <${process.env.EMAIL_USER}>`,
-        to: appt.users.email,
-        subject: `Appointment Status: ${status}`,
-        html: `
-          <p>Hi ${appt.users.firstname || "User"},</p>
-          <p>Your appointment #${id} has been marked as <strong>${status}</strong> by your doctor.</p>
-          <p>Thank you for using Teach2Give.</p>
-        `
+      await sendStatusUpdate({
+        userEmail: appt.users.email,
+        userName: `${appt.users.firstname} ${appt.users.lastname}`,
+        appointmentId: id,
+        status: status,
+        feedbackUrl: `${process.env.FRONTEND_URL}/feedback/${id}`,
+        prescriptionUrl: `${process.env.FRONTEND_URL}/prescriptions/${id}`,
       });
     }
 
@@ -317,5 +317,97 @@ export const adminUpdateAppointmentStatus = async (req: AuthenticatedRequest, re
     res.status(200).json({ message: `Admin updated status to ${status}` });
   } catch (err) {
     res.status(500).json({ message: "Could not update appointment status" });
+  }
+};
+
+export const adminUpdateAppointmentAmount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { total_amount } = req.body;
+
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ message: 'Only admins can update appointment amount.' });
+  }
+  if (!total_amount) {
+    return res.status(400).json({ message: 'total_amount is required.' });
+  }
+  try {
+    await db.update(appointments)
+      .set({ total_amount })
+      .where(eq(appointments.appointment_id, +id));
+    res.status(200).json({ message: 'Appointment amount updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update appointment amount.' });
+  }
+};
+
+export const deleteAppointment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const userId = req.user?.user_id;
+  const userRole = req.user?.role;
+  try {
+    // Only allow admin, the user who booked, or the doctor to delete
+    const [appt] = await db.select().from(appointments).where(eq(appointments.appointment_id, parseInt(id)));
+    if (!appt) {
+      res.status(404).json({ message: "Appointment not found" });
+      return;
+    }
+    if (userRole !== "admin" && appt.user_id !== userId && appt.doctor_id !== userId) {
+      res.status(403).json({ message: "Unauthorized" });
+      return;
+    }
+    await db.delete(appointments).where(eq(appointments.appointment_id, parseInt(id)));
+    res.status(200).json({ message: "Appointment deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete appointment" });
+  }
+};
+
+export const getDoctors = async (req: Request, res: Response) => {
+  try {
+    const doctorList = await db.query.doctors.findMany({
+      orderBy: (doctors, { asc }) => [asc(doctors.first_name)],
+    });
+
+    res.status(200).json({
+      message: "Doctors retrieved successfully",
+      doctors: doctorList
+    });
+  } catch (err) {
+    console.error("Error fetching doctors:", err);
+    res.status(500).json({ message: "Could not fetch doctors" });
+  }
+};
+
+// Get appointment stats for analytics (appointments per month)
+export const getAppointmentStats = async (req: Request, res: Response) => {
+  try {
+    // Example: Count appointments per month for the current year
+    const stats = await db.execute(`
+      SELECT 
+        TO_CHAR(appointment_date, 'Mon') AS month,
+        COUNT(*) AS count
+      FROM appointments
+      WHERE EXTRACT(YEAR FROM appointment_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+      GROUP BY month, EXTRACT(MONTH FROM appointment_date)
+      ORDER BY EXTRACT(MONTH FROM appointment_date)
+    `);
+
+    res.status(200).json(stats.rows); // Adjust if your db client returns differently
+  } catch (err) {
+    res.status(500).json({ message: "Could not fetch appointment stats" });
+  }
+};
+
+export const getAllAppointmentsAdmin = async (req: AuthenticatedRequest, res: Response) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ message: 'Only admins can view all appointments.' });
+  }
+  try {
+    const result = await db.query.appointments.findMany({
+      with: { doctor: true, user: true }
+    });
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Unable to retrieve all appointments' });
   }
 };

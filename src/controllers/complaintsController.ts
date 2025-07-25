@@ -14,7 +14,7 @@ interface AuthRequest extends Request {
 
 // Create a new complaint
 export const submitComplaint = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { related_appointment_id, subject, description } = req.body;
+  const { related_appointment_id, subject, description, category, priority } = req.body;
   const user_id = req.user?.user_id;
 
   if (!subject || !description) {
@@ -28,6 +28,8 @@ export const submitComplaint = async (req: AuthRequest, res: Response): Promise<
       related_appointment_id,
       subject,
       description,
+      category,
+      priority,
       status: "Open"
     });
 
@@ -100,5 +102,64 @@ export const updateComplaintStatus = async (req: Request, res: Response): Promis
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Update failed" });
+  }
+};
+
+export const updateComplaint = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const userId = req.user?.user_id;
+  const { subject, description } = req.body;
+  try {
+    const [complaint] = await db.select().from(complaints).where(eq(complaints.complaint_id, parseInt(id)));
+    if (!complaint) {
+      res.status(404).json({ message: 'Complaint not found' });
+      return;
+    }
+    if (complaint.user_id !== userId) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+    await db.update(complaints)
+      .set({ subject, description })
+      .where(eq(complaints.complaint_id, parseInt(id)));
+    res.status(200).json({ message: 'Complaint updated' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update complaint' });
+  }
+};
+
+export const getUserComplaints = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.user?.user_id;
+  if (!userId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  try {
+    const result = await db.select().from(complaints).where(eq(complaints.user_id, userId));
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch complaints' });
+  }
+};
+
+export const deleteComplaint = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const userId = req.user?.user_id;
+  const userRole = req.user?.role;
+  try {
+    const [complaint] = await db.select().from(complaints).where(eq(complaints.complaint_id, parseInt(id)));
+    if (!complaint) {
+      res.status(404).json({ message: "Complaint not found" });
+      return;
+    }
+    if (userRole !== "admin" && complaint.user_id !== userId) {
+      console.error(`Delete forbidden: userRole=${userRole}, req.user.user_id=${userId}, complaint.user_id=${complaint.user_id}`);
+      res.status(403).json({ message: `Unauthorized: userRole=${userRole}, req.user.user_id=${userId}, complaint.user_id=${complaint.user_id}` });
+      return;
+    }
+    await db.delete(complaints).where(eq(complaints.complaint_id, parseInt(id)));
+    res.status(200).json({ message: "Complaint deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete complaint" });
   }
 };

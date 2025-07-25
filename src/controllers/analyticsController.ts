@@ -13,8 +13,21 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// Add caching for analytics data
+import NodeCache from 'node-cache';
+
+const analyticsCache = new NodeCache({ stdTTL: 300 }); // 5 minutes cache
+
 export const getAdminSummaryAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const cacheKey = 'admin_summary';
+    const cachedData = analyticsCache.get(cacheKey);
+    
+    if (cachedData) {
+      res.status(200).json(cachedData);
+      return;
+    }
+
     // Get total counts
     const totalUsers = await db.select({ count: sql<number>`COUNT(*)` }).from(users);
     const totalDoctors = await db.select({ count: sql<number>`COUNT(*)` }).from(users).where(eq(users.role, "doctor"));
@@ -56,6 +69,8 @@ export const getAdminSummaryAnalytics = async (req: AuthenticatedRequest, res: R
         patient_full_name: `${appt.patient_name || ''} ${appt.patient_lastname || ''}`.trim()
       }))
     });
+    analyticsCache.set(cacheKey, data);
+    res.status(200).json(data);
   } catch (err) {
     console.error("Analytics summary error:", err);
     res.status(500).json({ message: "Failed to fetch analytics summary" });

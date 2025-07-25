@@ -5,14 +5,25 @@ import { payments, appointments, users } from "../../models/schema";
 import { eq } from "drizzle-orm";
 import { transporter } from "../../utils/mailer";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Check if Stripe key is available
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeKey) {
+  console.warn("Warning: STRIPE_SECRET_KEY not found in environment variables for webhook");
+}
+
+const stripe = stripeKey ? new Stripe(stripeKey, {
   apiVersion: "2025-06-30.basil"
-});
+}) : null;
 
 const router = express.Router();
 
 // Use raw body parsing for Stripe signature check
 router.post("/stripe", express.raw({ type: "application/json" }), async (req, res): Promise<void> => {
+  if (!stripe) {
+    res.status(500).json({ error: "Payment service not configured" });
+    return;
+  }
+
   const sig = req.headers["stripe-signature"]!;
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 

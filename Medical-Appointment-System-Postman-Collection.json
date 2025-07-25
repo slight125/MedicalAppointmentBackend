@@ -1,0 +1,889 @@
+{
+  "info": {
+    "name": "Medical Appointment System API",
+    "description": "Complete API collection for Medical Appointment System with authentication, user management, appointments, prescriptions, and admin features",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "medical-appointment-api-2025"
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"John\",\n  \"lastname\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"contact_phone\": \"+1-555-0123\",\n  \"address\": \"123 Main St, City, State\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('jwt_token', response.token);",
+                  "    pm.environment.set('user_id', response.user.user_id);",
+                  "    console.log('JWT Token set:', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User Dashboard",
+      "item": [
+        {
+          "name": "Get User Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍⚕️ Doctor Dashboard",
+      "item": [
+        {
+          "name": "Get Doctor Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/doctor/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctor", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Appointments",
+      "item": [
+        {
+          "name": "Book Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctor_id\": 1,\n  \"appointment_date\": \"2025-07-15\",\n  \"time_slot\": \"10:00 AM\",\n  \"total_amount\": 150.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/appointments/book",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appointments", "book"]
+            }
+          }
+        },
+        {
+          "name": "Get User Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appointments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appointments"]
+            }
+          }
+        },
+        {
+          "name": "Get Appointment by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appointments/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appointments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointment_date\": \"2025-07-16\",\n  \"time_slot\": \"2:00 PM\",\n  \"appointment_status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/appointments/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appointments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appointments/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appointments", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💊 Prescriptions",
+      "item": [
+        {
+          "name": "Get User Prescriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/prescriptions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "prescriptions"]
+            }
+          }
+        },
+        {
+          "name": "Get Prescription by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/prescriptions/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "prescriptions", "1"]
+            }
+          }
+        },
+        {
+          "name": "Download Prescription PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/prescriptions/1/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "prescriptions", "1", "pdf"]
+            }
+          }
+        },
+        {
+          "name": "Create Prescription (Doctor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointment_id\": 1,\n  \"patient_id\": 2,\n  \"medicines\": [\"Medicine A 100mg\", \"Medicine B 50mg\"],\n  \"notes\": \"Take with food. Complete full course.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/prescriptions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "prescriptions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Medical History",
+      "item": [
+        {
+          "name": "Get Own Medical History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/medical-history/self",
+              "host": ["{{base_url}}"],
+              "path": ["api", "medical-history", "self"]
+            }
+          }
+        },
+        {
+          "name": "Get User Medical History (Admin/Doctor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/medical-history/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "medical-history", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Payments",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointment_id\": 1,\n  \"amount\": 150.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/create-payment-intent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments", "create-payment-intent"]
+            }
+          }
+        },
+        {
+          "name": "Get User Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎧 Support",
+      "item": [
+        {
+          "name": "Submit Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Issue with appointment\",\n  \"message\": \"I'm having trouble accessing my appointment details.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/support/tickets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "tickets"]
+            }
+          }
+        },
+        {
+          "name": "Get User Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/support/tickets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "support", "tickets"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔧 Admin - User Management",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/search?query=john",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "john"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname\": \"Jane\",\n  \"lastname\": \"Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"role\": \"doctor\",\n  \"contact_phone\": \"+1-555-9999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Admin - Analytics",
+      "item": [
+        {
+          "name": "Get Admin Summary Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Get Booking Trends",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/bookings?range=week",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "bookings"],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "week"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Top Doctors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/top-doctors",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "top-doctors"]
+            }
+          }
+        },
+        {
+          "name": "Get Revenue Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/revenue?from=2025-01-01&to=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "revenue"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Appointment Status Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/appointment-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "appointment-status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📈 Admin - Stats & Revenue",
+      "item": [
+        {
+          "name": "Get Admin Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Daily Revenue",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/revenue/daily?from=2025-01-01&to=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "revenue", "daily"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Admin - Reports (CSV)",
+      "item": [
+        {
+          "name": "Export Appointments CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/appointments.csv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "appointments.csv"]
+            }
+          }
+        },
+        {
+          "name": "Export Payments CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/payments.csv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "payments.csv"]
+            }
+          }
+        },
+        {
+          "name": "Export Prescriptions CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/prescriptions.csv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "prescriptions.csv"]
+            }
+          }
+        },
+        {
+          "name": "Export Users CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/users.csv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "users.csv"]
+            }
+          }
+        },
+        {
+          "name": "Export Complaints CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports/complaints.csv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "reports", "complaints.csv"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Development & Testing",
+      "item": [
+        {
+          "name": "Test Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"test@example.com\",\n  \"subject\": \"Test Email\",\n  \"message\": \"This is a test email.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/test/email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "test", "email"]
+            }
+          }
+        },
+        {
+          "name": "Test Prescription PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dev/test-prescription-pdf/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dev", "test-prescription-pdf", "1"]
+            }
+          }
+        },
+        {
+          "name": "Test CSV Exports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dev/test-csv-export",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dev", "test-csv-export"]
+            }
+          }
+        },
+        {
+          "name": "Test Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dev/test-analytics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dev", "test-analytics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏠 Health Check",
+      "item": [
+        {
+          "name": "API Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    }
+  ]
+}

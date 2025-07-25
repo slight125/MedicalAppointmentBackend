@@ -47,6 +47,10 @@ export const appointments = pgTable("appointments", {
   total_amount: decimal("total_amount", { precision: 10, scale: 2 }),
   appointment_status: varchar("appointment_status", { length: 20 }), // Pending, Confirmed, Cancelled
   paid: boolean("paid").default(false),
+  diagnosis: text("diagnosis"),
+  treatment: text("treatment"),
+  medications: text("medications"),
+  notes: text("notes"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -60,6 +64,8 @@ export const prescriptions = pgTable("prescriptions", {
   medicines: text("medicines"), // JSON string of medicines array
   notes: text("notes"),
   issued_at: timestamp("issued_at"),
+  diagnosis: text("diagnosis"),
+  treatment: text("treatment"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -83,6 +89,8 @@ export const complaints = pgTable("complaints", {
   related_appointment_id: integer("related_appointment_id").references(() => appointments.appointment_id),
   subject: varchar("subject", { length: 150 }),
   description: text("description"),
+  category: varchar("category", { length: 50 }), // NEW
+  priority: varchar("priority", { length: 20 }), // NEW
   status: varchar("status", { length: 20 }), // Open, In Progress, Resolved, Closed
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sum, count, eq, between, and, sql, ilike, or } from "drizzle-orm";
 import { db } from "../config/db";
-import { users, appointments, prescriptions, payments } from "../models/schema";
+import { users, appointments, prescriptions, payments, doctors } from "../models/schema";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -274,5 +274,66 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response): Pro
       message: "Failed to search users",
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  }
+};
+
+// --- DOCTOR CRUD ---
+export const createDoctor = async (req: Request, res: Response): Promise<void> => {
+  const { first_name, last_name, specialization, contact_phone, available_days } = req.body;
+  if (!first_name || !last_name || !specialization || !contact_phone) {
+    res.status(400).json({ success: false, message: "Missing required fields" });
+    return;
+  }
+  try {
+    const [doctor] = await db.insert(doctors).values({
+      first_name,
+      last_name,
+      specialization,
+      contact_phone,
+      available_days,
+      created_at: new Date(),
+      updated_at: new Date(),
+    }).returning();
+    res.status(201).json({ success: true, message: "Doctor created", doctor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to create doctor", error });
+  }
+};
+
+export const updateDoctor = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { first_name, last_name, specialization, contact_phone, available_days } = req.body;
+  try {
+    const [doctorExists] = await db.select().from(doctors).where(eq(doctors.doctor_id, parseInt(id)));
+    if (!doctorExists) {
+      res.status(404).json({ success: false, message: "Doctor not found" });
+      return;
+    }
+    const updateData: any = {};
+    if (first_name !== undefined) updateData.first_name = first_name;
+    if (last_name !== undefined) updateData.last_name = last_name;
+    if (specialization !== undefined) updateData.specialization = specialization;
+    if (contact_phone !== undefined) updateData.contact_phone = contact_phone;
+    if (available_days !== undefined) updateData.available_days = available_days;
+    updateData.updated_at = new Date();
+    await db.update(doctors).set(updateData).where(eq(doctors.doctor_id, parseInt(id)));
+    res.status(200).json({ success: true, message: "Doctor updated" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to update doctor", error });
+  }
+};
+
+export const deleteDoctor = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+  try {
+    const [doctorExists] = await db.select().from(doctors).where(eq(doctors.doctor_id, parseInt(id)));
+    if (!doctorExists) {
+      res.status(404).json({ success: false, message: "Doctor not found" });
+      return;
+    }
+    await db.delete(doctors).where(eq(doctors.doctor_id, parseInt(id)));
+    res.status(200).json({ success: true, message: "Doctor deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to delete doctor", error });
   }
 };
