@@ -27,6 +27,17 @@ jest.mock('../../../src/utils/mailer', () => ({
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 const mockJwt = jwt as jest.Mocked<typeof jwt>;
 
+const mockUser = {
+  user_id: 1,
+  firstname: 'John',
+  lastname: 'Doe',
+  email: 'john@example.com',
+  password: 'hashedPassword',
+  role: 'user',
+  contact_phone: '1234567890',
+  address: '123 Main St'
+};
+
 describe('Auth Controller', () => {
   let app: express.Application;
 
@@ -156,15 +167,6 @@ describe('Auth Controller', () => {
     };
 
     it('should login user with valid credentials', async () => {
-      const mockUser = {
-        user_id: 1,
-        firstname: 'John',
-        lastname: 'Doe',
-        email: 'john@example.com',
-        password: 'hashedPassword',
-        role: 'user'
-      };
-
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
@@ -233,12 +235,6 @@ describe('Auth Controller', () => {
     });
 
     it('should return error for invalid password', async () => {
-      const mockUser = {
-        user_id: 1,
-        email: 'john@example.com',
-        password: 'hashedPassword'
-      };
-
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
