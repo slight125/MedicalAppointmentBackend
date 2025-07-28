@@ -32,7 +32,7 @@ describe('Auth Integration Tests', () => {
 
       // Note: This test would need proper database setup to work
       // For now, we're testing the endpoint structure
-      expect([200, 201, 400, 409]).toContain(response.status);
+      expect([201]).toContain(response.status);
     });
 
     it('should reject registration with invalid email', async () => {
@@ -82,7 +82,7 @@ describe('Auth Integration Tests', () => {
         .send(loginData);
 
       // Note: This would need proper test user setup
-      expect([200, 401, 404]).toContain(response.status);
+      expect([200]).toContain(response.status);
     });
 
     it('should reject login with invalid credentials', async () => {
@@ -103,7 +103,7 @@ describe('Auth Integration Tests', () => {
         .post('/api/auth/login')
         .send({});
 
-      expect([400, 422]).toContain(response.status);
+      expect([400]).toContain(response.status);
     });
   });
 });

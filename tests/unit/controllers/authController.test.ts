@@ -165,7 +165,7 @@ describe('Auth Controller', () => {
       };
 
       require('../../../src/config/db').db = mockDb;
-      mockBcrypt.compare.mockResolvedValue(true as any);
+      (mockBcrypt.compare as jest.Mock).mockResolvedValue(true);
       mockJwt.sign.mockReturnValue('mockToken' as never);
 
       const req = { body: validLoginData } as express.Request;
@@ -232,7 +232,7 @@ describe('Auth Controller', () => {
       };
 
       require('../../../src/config/db').db = mockDb;
-      mockBcrypt.compare.mockResolvedValue(false as any);
+      (mockBcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       const req = { body: validLoginData } as express.Request;
       const res = {
