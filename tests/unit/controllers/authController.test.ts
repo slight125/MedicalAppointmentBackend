@@ -99,24 +99,15 @@ describe('Auth Controller', () => {
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue([{ user_id: 1, email: 'john@example.com' }])
+        where: jest.fn().mockResolvedValue([mockUser])
       };
-
       require('../../../src/config/db').db = mockDb;
-
-      const req = { body: validUserData } as express.Request;
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn()
-      } as unknown as express.Response;
-
+      const { registerUser } = require('../../../src/controllers/authController');
+      const req = { body: { email: 'test@example.com', password: 'pass' } } as any;
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
       await registerUser(req, res);
-
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'User with this email already exists.'
-      });
+      expect(res.json).toHaveBeenCalledWith({ message: 'User with this email already exists.' });
     });
 
     it('should return error if email or password is missing', async () => {
@@ -170,12 +161,11 @@ describe('Auth Controller', () => {
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue([mockUser])
+        where: jest.fn().mockResolvedValue([mockUser])
       };
 
       require('../../../src/config/db').db = mockDb;
-      mockBcrypt.compare.mockResolvedValue(true as never);
+      mockBcrypt.compare.mockResolvedValue(true);
       mockJwt.sign.mockReturnValue('mockToken' as never);
 
       const req = { body: validLoginData } as express.Request;
@@ -238,12 +228,11 @@ describe('Auth Controller', () => {
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue([mockUser])
+        where: jest.fn().mockResolvedValue([mockUser])
       };
 
       require('../../../src/config/db').db = mockDb;
-      mockBcrypt.compare.mockResolvedValue(false as never);
+      mockBcrypt.compare.mockResolvedValue(false);
 
       const req = { body: validLoginData } as express.Request;
       const res = {
