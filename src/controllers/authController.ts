@@ -51,7 +51,7 @@ export const registerUser = async (req: Request, res: Response) => {
     // Remove password before sending user object
     const { password: _pw, ...userWithoutPassword } = newUser;
     res.status(201).json({
-      message: "User registered successfully 🚀",
+      message: "User registered successfully",
       user: userWithoutPassword
     });
   } catch (error) {
@@ -80,11 +80,11 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         role: user[0].role,
       },
       process.env.JWT_SECRET!,
-      { expiresIn: "2h" }
+      { expiresIn: "24h" }
     );
 
     res.status(200).json({ 
-      message: "Login successful 🎉", 
+      message: "Login successful", 
       token,
       user: {
         user_id: user[0].user_id,
