@@ -28,11 +28,13 @@ export const users = pgTable("users", {
 // Doctors Table
 export const doctors = pgTable("doctors", {
   doctor_id: serial("doctor_id").primaryKey(),
+  user_id: integer("user_id").references(() => users.user_id), // Added for user mapping
   first_name: varchar("first_name", { length: 100 }),
   last_name: varchar("last_name", { length: 100 }),
   specialization: varchar("specialization", { length: 100 }),
   contact_phone: varchar("contact_phone", { length: 20 }),
   available_days: text("available_days"),
+  fee: decimal("fee", { precision: 10, scale: 2 }), // Appointment fee in Ksh
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -94,6 +96,15 @@ export const complaints = pgTable("complaints", {
   status: varchar("status", { length: 20 }), // Open, In Progress, Resolved, Closed
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
+});
+
+export const complaint_messages = pgTable("complaint_messages", {
+  message_id: serial("message_id").primaryKey(),
+  complaint_id: integer("complaint_id").references(() => complaints.complaint_id),
+  sender_id: integer("sender_id").references(() => users.user_id),
+  sender_role: varchar("sender_role", { length: 20 }),
+  message: text("message"),
+  created_at: timestamp("created_at").defaultNow(),
 });
 
 

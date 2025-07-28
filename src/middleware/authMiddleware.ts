@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
 interface AuthRequest extends Request {
   user?: {
@@ -11,16 +13,28 @@ interface AuthRequest extends Request {
 
 export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
+  
+  console.log('🔍 verifyToken called');
+  console.log('🔍 authHeader:', authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log('❌ No valid auth header found');
     res.status(401).json({ message: "Access token missing or invalid" });
     return;
   }
 
   const token = authHeader.split(" ")[1];
+  console.log('🔍 Token extracted:', token ? 'Token exists' : 'No token');
+
+  if (!process.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not defined in your .env file.");
+    res.status(500).json({ message: "Server misconfiguration: JWT secret missing." });
+    return;
+  }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as AuthRequest["user"];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as AuthRequest["user"];
+    console.log('🔍 Token decoded successfully:', decoded);
     req.user = decoded;
     next();
   } catch (err) {
@@ -29,9 +43,10 @@ export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction)
   }
 };
 
-export const requireRole = (role: string): RequestHandler => {
+export const requireRole = (roles: string | string[]): RequestHandler => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user || req.user.role !== role) {
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
       res.status(403).json({ message: "You do not have permission to perform this action" });
       return;
     }

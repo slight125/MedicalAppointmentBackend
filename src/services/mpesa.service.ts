@@ -45,7 +45,7 @@ export const getAccessToken = async (): Promise<string> => {
 };
 
 // 2. Initiate STK Push
-export const initiateSTKPush = async (phone: string, amount: number) => {
+export const initiateSTKPush = async (phone: string, amount: number, appointment_id: number) => {
   const accessToken = await getAccessToken();
 
   // Generate timestamp: YYYYMMDDHHMMSS
@@ -76,8 +76,8 @@ export const initiateSTKPush = async (phone: string, amount: number) => {
     PartyB: DARAJA_SHORT_CODE,
     PhoneNumber: formattedPhone,
     CallBackURL: DARAJA_CALLBACK_URL,
-    AccountReference: "Medicare HealthSystem",
-    TransactionDesc: "Booking Payment",
+    AccountReference: `Appointment-${appointment_id}`,
+    TransactionDesc: `Booking Payment for Appointment #${appointment_id}`,
   };
 
   try {

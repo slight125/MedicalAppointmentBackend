@@ -33,7 +33,7 @@ export const createPaymentSession = async (req: Request, res: Response): Promise
       payment_method_types: ["card"],
       line_items: [{
         price_data: {
-          currency: "usd",
+          currency: "kes",
           product_data: {
             name: "Medical Appointment Payment",
             description: `Payment for appointment #${appointment_id}`
@@ -67,16 +67,25 @@ export const confirmPayment = async (req: Request, res: Response): Promise<void>
   }
 
   try {
+    // Convert appointment_id to integer if it's a string
+    const appointmentId = typeof appointment_id === 'string' ? parseInt(appointment_id) : appointment_id;
+    
+    // Validate that appointment_id is a valid integer
+    if (isNaN(appointmentId)) {
+      res.status(400).json({ message: "Invalid appointment_id format" });
+      return;
+    }
+
     await db.insert(payments).values({
-      appointment_id,
-      amount,
+      appointment_id: appointmentId,
+      amount: String(amount),
       transaction_id,
       payment_status,
     });
 
     // Send email notification after saving payment
     const appointment = await db.query.appointments.findFirst({
-      where: eq(appointments.appointment_id, appointment_id),
+      where: eq(appointments.appointment_id, appointmentId),
       with: { user: true }
     });
 
@@ -87,7 +96,7 @@ export const confirmPayment = async (req: Request, res: Response): Promise<void>
         subject: "Payment Confirmation",
         html: `
           <h2>Payment Received ✅</h2>
-          <p>Your payment of <strong>Ksh ${amount}</strong> for appointment #${appointment_id} has been confirmed.</p>
+          <p>Your payment of <strong>Ksh ${amount}</strong> for appointment #${appointmentId} has been confirmed.</p>
           <p>Thank you for using Teach2Give!</p>
         `
       });

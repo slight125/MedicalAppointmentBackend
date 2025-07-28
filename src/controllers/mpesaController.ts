@@ -68,13 +68,13 @@ export const mpesaCallback = async (req: Request, res: Response) => {
       if (receipt) {
         const [payment] = await db.select().from(payments).where(eq(payments.transaction_id, receipt));
         if (payment) {
-          await db.update(payments).set({ payment_status: 'completed', appointment_id, amount, payment_date: new Date(), }).where(eq(payments.transaction_id, receipt));
+          await db.update(payments).set({ payment_status: 'completed', appointment_id, amount: String(amount), payment_date: new Date().toISOString().slice(0,10) }).where(eq(payments.transaction_id, receipt));
         } else {
           await db.insert(payments).values({
-            amount,
+            amount: String(amount),
             transaction_id: receipt,
             payment_status: 'completed',
-            payment_date: new Date(),
+            payment_date: new Date().toISOString().slice(0,10),
             appointment_id,
           });
         }

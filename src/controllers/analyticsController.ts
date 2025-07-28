@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import { db } from "../config/db";
 import * as schema from "../models/schema";
-import { eq, gte, desc, sql } from "drizzle-orm";
+import { eq, gte, desc, sql, inArray } from "drizzle-orm";
+import { complaints, payments } from "../models/schema";
 
-const { users, appointments, payments, doctors } = schema;
+const { users, appointments, doctors } = schema;
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -56,7 +57,7 @@ export const getAdminSummaryAnalytics = async (req: AuthenticatedRequest, res: R
       .orderBy(desc(appointments.created_at))
       .limit(5);
 
-    res.status(200).json({
+    const responseData = {
       totals: {
         users: totalUsers[0]?.count || 0,
         doctors: totalDoctors[0]?.count || 0,
@@ -68,9 +69,9 @@ export const getAdminSummaryAnalytics = async (req: AuthenticatedRequest, res: R
         ...appt,
         patient_full_name: `${appt.patient_name || ''} ${appt.patient_lastname || ''}`.trim()
       }))
-    });
-    analyticsCache.set(cacheKey, data);
-    res.status(200).json(data);
+    };
+    analyticsCache.set(cacheKey, responseData);
+    res.status(200).json(responseData);
   } catch (err) {
     console.error("Analytics summary error:", err);
     res.status(500).json({ message: "Failed to fetch analytics summary" });
@@ -99,32 +100,23 @@ export const getBookingTrends = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-export const getTopDoctors = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const data = await db
-      .select({
-        doctor_id: appointments.doctor_id,
-        doctor_name: users.firstname,
-        doctor_lastname: users.lastname,
-        appointment_count: sql<number>`COUNT(*)`
-      })
-      .from(appointments)
-      .leftJoin(users, eq(appointments.doctor_id, users.user_id))
-      .groupBy(appointments.doctor_id, users.firstname, users.lastname)
-      .orderBy(desc(sql`COUNT(*)`))
-      .limit(5);
-
-    const formattedData = data.map(item => ({
-      doctor_id: item.doctor_id,
-      doctor_name: `${item.doctor_name || ''} ${item.doctor_lastname || ''}`.trim() || 'Unknown Doctor',
-      appointment_count: item.appointment_count
-    }));
-
-    res.status(200).json(formattedData);
-  } catch (err) {
-    console.error("Top doctors error:", err);
-    res.status(500).json({ message: "Failed to fetch top doctors" });
-  }
+export const getTopDoctors = async (_req: Request, res: Response) => {
+  // Get all appointments
+  const appts = await db.query.appointments.findMany({ columns: { doctor_id: true } });
+  // Count appointments per doctor
+  const counts: Record<number, number> = {};
+  appts.forEach(a => {
+    if (a.doctor_id) counts[a.doctor_id] = (counts[a.doctor_id] || 0) + 1;
+  });
+  // Get doctor info
+  const doctorIds = Object.keys(counts).map(Number);
+  const docs = doctorIds.length > 0 ? await db.query.doctors.findMany({ where: inArray(doctors.doctor_id, doctorIds) }) : [];
+  // Merge and sort
+  const topDoctors = docs.map(doc => ({
+    ...doc,
+    appointmentCount: counts[doc.doctor_id] || 0
+  })).sort((a, b) => b.appointmentCount - a.appointmentCount);
+  res.json(topDoctors);
 };
 
 export const getRevenueAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -172,19 +164,7 @@ export const getAppointmentStatusBreakdown = async (req: AuthenticatedRequest, r
       })
       .from(appointments)
       .groupBy(appointments.appointment_status);
-
-    const paidBreakdown = await db
-      .select({
-        paid_status: sql<string>`CASE WHEN ${appointments.paid} THEN 'Paid' ELSE 'Unpaid' END`,
-        count: sql<number>`COUNT(*)`
-      })
-      .from(appointments)
-      .groupBy(sql`CASE WHEN ${appointments.paid} THEN 'Paid' ELSE 'Unpaid' END`);
-
-    res.status(200).json({
-      statusBreakdown,
-      paidBreakdown
-    });
+    res.status(200).json(statusBreakdown);
   } catch (err) {
     console.error("Appointment status breakdown error:", err);
     res.status(500).json({ message: "Failed to fetch appointment status breakdown" });

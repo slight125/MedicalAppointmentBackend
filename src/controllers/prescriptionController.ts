@@ -3,6 +3,7 @@ import { db } from "../config/db";
 import * as schema from "../models/schema";
 import { eq } from "drizzle-orm";
 import { generatePrescriptionPDF } from "../utils/pdfGenerator";
+import { doctors } from "../models/schema";
 
 const { prescriptions, appointments, users } = schema;
 
@@ -82,18 +83,20 @@ export const getUserPrescriptions = async (req: AuthenticatedRequest, res: Respo
         issued_at: prescriptions.issued_at,
         appointment_date: appointments.appointment_date,
         appointment_time: appointments.time_slot,
-        doctor_name: users.firstname,
+        doctor_name: doctors.first_name,
+        doctor_lastname: doctors.last_name,
         created_at: prescriptions.created_at
       })
       .from(prescriptions)
       .innerJoin(appointments, eq(prescriptions.appointment_id, appointments.appointment_id))
-      .innerJoin(users, eq(prescriptions.doctor_id, users.user_id))
+      .innerJoin(doctors, eq(prescriptions.doctor_id, doctors.doctor_id))
       .where(eq(prescriptions.patient_id, user_id));
 
     // Parse medicines JSON for each prescription
     const formattedResult = result.map(prescription => ({
       ...prescription,
-      medicines: prescription.medicines ? JSON.parse(prescription.medicines) : null
+      medicines: prescription.medicines ? JSON.parse(prescription.medicines) : null,
+      doctor_name: `${prescription.doctor_name} ${prescription.doctor_lastname || ''}`.trim()
     }));
 
     res.status(200).json(formattedResult);
@@ -106,13 +109,18 @@ export const getUserPrescriptions = async (req: AuthenticatedRequest, res: Respo
 // Get prescriptions issued by a doctor
 export const getDoctorPrescriptions = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const doctorId = req.user?.user_id;
-
-    if (!doctorId) {
+    // Map user_id to doctor_id
+    const userId = req.user?.user_id;
+    if (!userId) {
       res.status(401).json({ message: "Doctor authentication required" });
       return;
     }
-
+    const doctor = await db.query.doctors.findFirst({ where: eq(doctors.user_id, userId) });
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor profile not found for this user." });
+      return;
+    }
+    const doctorId = doctor.doctor_id;
     const result = await db
       .select({
         prescription_id: prescriptions.prescription_id,
@@ -152,6 +160,8 @@ export const getPrescriptionById = async (req: AuthenticatedRequest, res: Respon
     const userId = req.user?.user_id;
     const userRole = req.user?.role;
 
+    console.log(`🔍 Prescription lookup request for ID: ${id} by user: ${userId} (${userRole})`);
+
     if (!userId) {
       res.status(401).json({ message: "Authentication required" });
       return;
@@ -176,21 +186,38 @@ export const getPrescriptionById = async (req: AuthenticatedRequest, res: Respon
       .innerJoin(users, eq(prescriptions.doctor_id, users.user_id))
       .where(eq(prescriptions.prescription_id, parseInt(id)));
 
+    console.log(`🔍 Prescription lookup result:`, prescription ? `Found prescription ${prescription.prescription_id}` : 'Not found');
+
     if (!prescription) {
       res.status(404).json({ message: "Prescription not found" });
       return;
     }
 
     // Check authorization: patient can view their own, doctor can view their issued prescriptions
-    const isAuthorized = 
-      (userRole === "user" && prescription.patient_id === userId) ||
-      (userRole === "doctor" && prescription.doctor_id === userId) ||
-      userRole === "admin";
+    let isAuthorized = false;
+    
+    if (userRole === "user") {
+      isAuthorized = prescription.patient_id === userId;
+      console.log(`🔍 User authorization check: patient_id=${prescription.patient_id}, userId=${userId}, authorized=${isAuthorized}`);
+    } else if (userRole === "doctor") {
+      // For doctors, we need to get their doctor_id from the doctors table
+      const doctor = await db.query.doctors.findFirst({ 
+        where: eq(doctors.user_id, userId) 
+      });
+      isAuthorized = !!doctor && prescription.doctor_id === doctor.doctor_id;
+      console.log(`🔍 Doctor authorization check: doctor_id=${prescription.doctor_id}, user_doctor_id=${doctor?.doctor_id}, authorized=${isAuthorized}`);
+    } else if (userRole === "admin") {
+      isAuthorized = true;
+      console.log(`🔍 Admin authorization: always authorized`);
+    }
 
     if (!isAuthorized) {
+      console.log(`❌ Authorization failed for prescription ${id}`);
       res.status(403).json({ message: "Unauthorized to view this prescription" });
       return;
     }
+
+    console.log(`✅ Authorization successful for prescription ${id}`);
 
     // Parse medicines JSON
     const formattedPrescription = {
@@ -212,6 +239,8 @@ export const downloadPrescriptionPDF = async (req: AuthenticatedRequest, res: Re
     const userId = req.user?.user_id;
     const userRole = req.user?.role;
 
+    console.log(`🔍 PDF download request for prescription ID: ${id} by user: ${userId} (${userRole})`);
+
     if (!userId) {
       res.status(401).json({ message: "Authentication required" });
       return;
@@ -229,25 +258,37 @@ export const downloadPrescriptionPDF = async (req: AuthenticatedRequest, res: Re
         issued_at: prescriptions.issued_at,
         appointment_date: appointments.appointment_date,
         appointment_time: appointments.time_slot,
-        doctor_firstname: users.firstname,
-        doctor_lastname: users.lastname,
+        doctor_firstname: doctors.first_name,
+        doctor_lastname: doctors.last_name,
         created_at: prescriptions.created_at
       })
       .from(prescriptions)
       .innerJoin(appointments, eq(prescriptions.appointment_id, appointments.appointment_id))
-      .innerJoin(users, eq(prescriptions.doctor_id, users.user_id))
+      .innerJoin(doctors, eq(prescriptions.doctor_id, doctors.doctor_id))
       .where(eq(prescriptions.prescription_id, parseInt(id)));
 
     if (!prescription) {
+      console.log(`❌ Prescription not found for ID: ${id}`);
       res.status(404).json({ message: "Prescription not found" });
       return;
     }
 
+    console.log(`✅ Found prescription: ${prescription.prescription_id} for patient: ${prescription.patient_id}`);
+
     // Check authorization: patient can download their own, doctor can download their issued prescriptions
-    const isAuthorized = 
-      (userRole === "user" && prescription.patient_id === userId) ||
-      (userRole === "doctor" && prescription.doctor_id === userId) ||
-      userRole === "admin";
+    let isAuthorized = false;
+    
+    if (userRole === "user") {
+      isAuthorized = prescription.patient_id === userId;
+    } else if (userRole === "doctor") {
+      // For doctors, we need to check if the prescription was issued by this doctor
+      const doctor = await db.query.doctors.findFirst({ 
+        where: eq(doctors.user_id, userId) 
+      });
+      isAuthorized = !!doctor && prescription.doctor_id === doctor.doctor_id;
+    } else if (userRole === "admin") {
+      isAuthorized = true;
+    }
 
     if (!isAuthorized) {
       res.status(403).json({ message: "Unauthorized to download this prescription" });
@@ -274,7 +315,16 @@ export const downloadPrescriptionPDF = async (req: AuthenticatedRequest, res: Re
       try {
         const parsedMedicines = JSON.parse(prescription.medicines);
         if (Array.isArray(parsedMedicines)) {
-          medicines = parsedMedicines;
+          // Handle array of medicine objects
+          medicines = parsedMedicines.map(med => {
+            if (typeof med === 'string') {
+              return med;
+            } else if (typeof med === 'object' && med.name) {
+              return `${med.name}${med.dosage ? ` - ${med.dosage}` : ''}${med.instructions ? ` (${med.instructions})` : ''}`;
+            } else {
+              return JSON.stringify(med);
+            }
+          });
         } else if (typeof parsedMedicines === 'object') {
           // Handle case where medicines might be an object with medicine details
           medicines = Object.values(parsedMedicines).map(med => 

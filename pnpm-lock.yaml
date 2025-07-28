@@ -22,7 +22,7 @@ importers:
         version: 17.0.0
       drizzle-orm:
         specifier: ^0.44.2
-        version: 0.44.2(pg@8.16.3)
+        version: 0.44.2(@types/pg@8.15.4)(pg@8.16.3)
       express:
         specifier: ^5.1.0
         version: 5.1.0
@@ -69,9 +69,15 @@ importers:
       '@types/node':
         specifier: ^24.0.7
         version: 24.0.7
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.17
       '@types/pdfkit':
         specifier: ^0.14.0
         version: 0.14.0
+      '@types/pg':
+        specifier: ^8.15.4
+        version: 8.15.4
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
@@ -780,8 +786,14 @@ packages:
   '@types/node@24.0.7':
     resolution: {integrity: sha512-YIEUUr4yf8q8oQoXPpSlnvKNVKDQlPMWrmOcgzoduo7kvA2UF0/BwJ/eMKFTiTtkNL17I0M6Xe2tvwFU7be6iw==}
 
+  '@types/nodemailer@6.4.17':
+    resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
+
   '@types/pdfkit@0.14.0':
     resolution: {integrity: sha512-X94hoZVr9dNfV23roeXRm57AWS+AOMak3gq2wZvn4TXiLvXE8+TrYaM5IkMyZbGRw49jEqI49rP/UVL3+C3Svg==}
+
+  '@types/pg@8.15.4':
+    resolution: {integrity: sha512-I6UNVBAoYbvuWkkU3oosC8yxqH21f4/Jc4DK71JLG3dT2mdlGe1z+ep/LQGXaKaOgcvUrsQoPRqfgtMcvZiJhg==}
 
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
@@ -3102,9 +3114,19 @@ snapshots:
     dependencies:
       undici-types: 7.8.0
 
+  '@types/nodemailer@6.4.17':
+    dependencies:
+      '@types/node': 24.0.7
+
   '@types/pdfkit@0.14.0':
     dependencies:
       '@types/node': 24.0.7
+
+  '@types/pg@8.15.4':
+    dependencies:
+      '@types/node': 24.0.7
+      pg-protocol: 1.10.3
+      pg-types: 2.2.0
 
   '@types/qs@6.14.0': {}
 
@@ -3474,8 +3496,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.2(pg@8.16.3):
+  drizzle-orm@0.44.2(@types/pg@8.15.4)(pg@8.16.3):
     optionalDependencies:
+      '@types/pg': 8.15.4
       pg: 8.16.3
 
   dunder-proto@1.0.1:

@@ -4,7 +4,10 @@ import {
   getBookingTrends,
   getTopDoctors,
   getRevenueAnalytics,
-  getAppointmentStatusBreakdown
+  getAppointmentStatusBreakdown,
+  // getTopDiagnoses,
+  // getRevenueByDoctor,
+  // getTicketResolutionStats
 } from "../../controllers/analyticsController";
 import { verifyToken, allowRoles } from "../../middleware/authMiddleware";
 
@@ -24,5 +27,9 @@ router.get("/revenue", verifyToken, allowRoles("admin"), getRevenueAnalytics);
 
 // Appointment status breakdown
 router.get("/appointment-status", verifyToken, allowRoles("admin"), getAppointmentStatusBreakdown);
+
+// router.get('/top-diagnoses', verifyToken, allowRoles('admin'), getTopDiagnoses);
+// router.get('/revenue-by-doctor', verifyToken, allowRoles('admin'), getRevenueByDoctor);
+// router.get('/ticket-resolution-time', verifyToken, allowRoles('admin'), getTicketResolutionStats);
 
 export default router;

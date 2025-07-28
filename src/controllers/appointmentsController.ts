@@ -2,9 +2,10 @@ import { Request, Response } from "express";
 import { db } from "../config/db";
 import { appointments, users, doctors } from "../models/schema";
 import { eq, and } from "drizzle-orm";
-import { transporter } from "../utils/mailer";
+import { transporter, sendAppointmentConfirmation } from "../utils/mailer";
+import { sendStatusUpdate } from "../utils/mailer";
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user?: {
     user_id: number;
     email: string;
@@ -17,8 +18,7 @@ export const bookAppointment = async (req: Request, res: Response) => {
     user_id,
     doctor_id,
     appointment_date,
-    time_slot,
-    total_amount
+    time_slot
   } = req.body;
 
   if (!user_id || !doctor_id || !appointment_date || !time_slot) {
@@ -26,12 +26,20 @@ export const bookAppointment = async (req: Request, res: Response) => {
   }
 
   try {
+    // Fetch doctor's fee from doctor profile
+    const doctor = await db.query.doctors.findFirst({
+      where: eq(doctors.doctor_id, doctor_id)
+    });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    const total_amount = doctor.fee || 2000; // Default fee if not set
     const [appointment] = await db.insert(appointments).values({
       user_id,
       doctor_id,
-      appointment_date,
+      appointment_date: String(appointment_date),
       time_slot,
-      total_amount,
+      total_amount: String(total_amount),
       appointment_status: "Pending"
     }).returning();
 
@@ -39,7 +47,7 @@ export const bookAppointment = async (req: Request, res: Response) => {
     const user = await db.query.users.findFirst({ 
       where: eq(users.user_id, user_id) 
     });
-    const doctor = await db.query.doctors.findFirst({
+    const doctorProfile = await db.query.doctors.findFirst({
       where: eq(doctors.doctor_id, doctor_id)
     });
 
@@ -47,7 +55,7 @@ export const bookAppointment = async (req: Request, res: Response) => {
       await sendAppointmentConfirmation({
         userEmail: user.email,
         userName: `${user.firstname} ${user.lastname}`,
-        doctorName: `${doctor?.first_name} ${doctor?.last_name}`,
+        doctorName: `${doctorProfile?.first_name} ${doctorProfile?.last_name}`,
         date: appointment_date,
         timeSlot: time_slot,
         amount: total_amount,
@@ -55,7 +63,10 @@ export const bookAppointment = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(201).json({ message: "Appointment booked successfully" });
+    res.status(201).json({ 
+      message: "Appointment booked successfully",
+      appointment_id: appointment.appointment_id
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Could not book appointment" });
@@ -65,37 +76,49 @@ export const bookAppointment = async (req: Request, res: Response) => {
 // View appointments for logged-in user
 export const getUserAppointments = async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.user_id;
+  
+  console.log('🔍 getUserAppointments called');
+  console.log('🔍 req.user:', req.user);
+  console.log('🔍 userId:', userId);
 
   if (!userId) {
+    console.log('❌ No user ID found in request');
     return res.status(400).json({ message: "User ID is required" });
   }
 
   try {
+    console.log('🔍 Querying appointments for user_id:', userId);
     const result = await db.query.appointments.findMany({
       where: eq(appointments.user_id, userId),
       with: { doctor: true }
     });
 
+    console.log('🔍 Found appointments:', result.length);
+    console.log('🔍 Appointments:', result);
+
     res.status(200).json(result);
   } catch (err) {
+    console.error('❌ Error fetching appointments:', err);
     res.status(500).json({ message: "Unable to retrieve appointments" });
   }
 };
 
 // Doctor view of their bookings
 export const getDoctorAppointments = async (req: AuthenticatedRequest, res: Response) => {
-  const doctorId = req.user?.user_id;
-
-  if (!doctorId) {
-    return res.status(400).json({ message: "Doctor ID is required" });
+  const userId = req.user?.user_id;
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required" });
   }
-
   try {
+    // Find the doctor row for this user
+    const doctor = await db.query.doctors.findFirst({ where: eq(doctors.user_id, userId) });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found for this user." });
+    }
     const result = await db.query.appointments.findMany({
-      where: eq(appointments.doctor_id, doctorId),
+      where: eq(appointments.doctor_id, doctor.doctor_id),
       with: { user: true }
     });
-
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ message: "Unable to retrieve appointments" });
@@ -124,7 +147,8 @@ export const updateAppointmentStatus = async (req: AuthenticatedRequest, res: Re
       .where(and(eq(appointments.appointment_id, +id), eq(appointments.doctor_id, doctorId)));
 
     if (!appointment) {
-      return res.status(403).json({ message: "Unauthorized or appointment not found" });
+      res.status(403).json({ message: "Unauthorized or appointment not found" });
+      return;
     }
 
     await db
@@ -325,10 +349,12 @@ export const adminUpdateAppointmentAmount = async (req: AuthenticatedRequest, re
   const { total_amount } = req.body;
 
   if (req.user?.role !== 'admin') {
-    return res.status(403).json({ message: 'Only admins can update appointment amount.' });
+    res.status(403).json({ message: 'Only admins can update appointment amount.' });
+    return;
   }
   if (!total_amount) {
-    return res.status(400).json({ message: 'total_amount is required.' });
+    res.status(400).json({ message: 'total_amount is required.' });
+    return;
   }
   try {
     await db.update(appointments)
@@ -409,5 +435,56 @@ export const getAllAppointmentsAdmin = async (req: AuthenticatedRequest, res: Re
     res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ message: 'Unable to retrieve all appointments' });
+  }
+};
+
+// Add this endpoint for updating doctor fee
+export const updateDoctorFee = async (req: AuthenticatedRequest, res: Response) => {
+  const { doctor_id } = req.params;
+  const { fee } = req.body;
+  const userId = req.user?.user_id;
+  const userRole = req.user?.role;
+
+  console.log('🔍 updateDoctorFee debug:', {
+    doctor_id,
+    fee,
+    userId,
+    userRole,
+    user: req.user
+  });
+
+  if (!fee || isNaN(Number(fee))) {
+    return res.status(400).json({ message: 'Fee is required and must be a number.' });
+  }
+
+  try {
+    const doctor = await db.query.doctors.findFirst({ where: eq(doctors.doctor_id, Number(doctor_id)) });
+
+    console.log('🔍 Doctor found:', doctor);
+
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found.' });
+    }
+
+    console.log('🔍 Authorization check:', {
+      userRole,
+      doctorUserId: doctor.user_id,
+      requestUserId: userId,
+      isAdmin: userRole === 'admin',
+      isOwnDoctor: userRole === 'doctor' && doctor.user_id === userId
+    });
+
+    // Allow admin to update any doctor's fee, or doctor to update their own fee
+    if (userRole === 'admin' || (userRole === 'doctor' && doctor.user_id === userId)) {
+      await db.update(doctors)
+        .set({ fee: fee.toString() })
+        .where(eq(doctors.doctor_id, Number(doctor_id)));
+      return res.status(200).json({ message: 'Doctor fee updated successfully.' });
+    } else {
+      return res.status(403).json({ message: 'Unauthorized to update this doctor\'s fee.' });
+    }
+  } catch (error) {
+    console.error('❌ Error updating doctor fee:', error);
+    return res.status(500).json({ message: 'Failed to update doctor fee.' });
   }
 };

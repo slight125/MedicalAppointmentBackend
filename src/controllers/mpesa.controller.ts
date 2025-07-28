@@ -2,12 +2,12 @@ import { Request, Response } from "express";
 import { initiateSTKPush } from "../services/mpesa.service";
 
 export const payForBooking = async (req: Request, res: Response) => {
-  const { phone, amount } = req.body;
+  const { phone, amount, appointment_id } = req.body;
 
   // ✅ Input validation
-  if (!phone || !amount) {
+  if (!phone || !amount || !appointment_id) {
     res.status(400).json({
-      message: "Phone number and amount are required.",
+      message: "Phone number, amount, and appointment_id are required.",
     });
     return;
   }
@@ -18,7 +18,7 @@ export const payForBooking = async (req: Request, res: Response) => {
     : phone.replace(/^0/, "254");
 
   try {
-    const result = await initiateSTKPush(formattedPhone, amount);
+    const result = await initiateSTKPush(formattedPhone, amount, appointment_id);
 
     res.status(200).json({
       message: "STK push initiated successfully.",

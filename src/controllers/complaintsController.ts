@@ -1,8 +1,11 @@
 import { Request, Response } from "express";
 import { db } from "../config/db";
 import { complaints, users } from "../models/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { transporter } from "../utils/mailer";
+import { appointments } from "../models/schema";
+import { doctors } from "../models/schema";
+import { complaint_messages } from "../models/schema";
 
 interface AuthRequest extends Request {
   user?: {
@@ -60,10 +63,26 @@ export const submitComplaint = async (req: AuthRequest, res: Response): Promise<
 };
 
 // Get all complaints (Admin view)
-export const getAllComplaints = async (_req: Request, res: Response): Promise<void> => {
+export const getAllComplaints = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await db.select().from(complaints);
-    res.status(200).json(result);
+    const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    if (page && limit) {
+      const offset = (page - 1) * limit;
+      const [totalResult] = await db.execute(`SELECT COUNT(*) as count FROM complaints`) as unknown as any[];
+      const total = totalResult ? parseInt(totalResult.count, 10) : 0;
+      const result = await db.select().from(complaints).limit(limit).offset(offset);
+      res.status(200).json({
+        complaints: result,
+        total,
+        page,
+        pageSize: limit
+      });
+    } else {
+      // No pagination: return all complaints as a flat array
+      const result = await db.select().from(complaints);
+      res.status(200).json(result);
+    }
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch complaints" });
   }
@@ -161,5 +180,84 @@ export const deleteComplaint = async (req: AuthRequest, res: Response): Promise<
     res.status(200).json({ message: "Complaint deleted" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete complaint" });
+  }
+};
+
+export const getDoctorComplaints = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user || req.user.role !== 'doctor') {
+    res.status(403).json({ message: 'Forbidden' });
+    return;
+  }
+  try {
+    // Find the doctor row for this user
+    const doctor = await db.query.doctors.findFirst({ where: eq(doctors.user_id, req.user.user_id) });
+    if (!doctor) {
+      res.status(404).json({ message: 'Doctor profile not found for this user.' });
+      return;
+    }
+    // Find all appointments for this doctor
+    const doctorAppointments = await db.select().from(appointments).where(eq(appointments.doctor_id, doctor.doctor_id));
+    const appointmentIds = doctorAppointments.map(a => a.appointment_id);
+    if (appointmentIds.length === 0) {
+      res.status(200).json([]);
+      return;
+    }
+    // Find all complaints for these appointments
+    const doctorComplaints = await db
+      .select({
+        complaint_id: complaints.complaint_id,
+        user_id: complaints.user_id,
+        related_appointment_id: complaints.related_appointment_id,
+        subject: complaints.subject,
+        description: complaints.description,
+        status: complaints.status,
+        category: complaints.category,
+        priority: complaints.priority,
+        created_at: complaints.created_at,
+        updated_at: complaints.updated_at,
+        user_name: users.firstname,
+        user_email: users.email,
+        user_phone: users.contact_phone,
+        appointment_date: appointments.appointment_date,
+      })
+      .from(complaints)
+      .leftJoin(appointments, eq(complaints.related_appointment_id, appointments.appointment_id))
+      .leftJoin(users, eq(complaints.user_id, users.user_id))
+      .where(inArray(complaints.related_appointment_id, appointmentIds));
+    res.status(200).json(doctorComplaints);
+  } catch (err) {
+    console.error('getDoctorComplaints error:', err instanceof Error ? err.stack : err);
+    res.status(500).json({ message: 'Failed to fetch doctor complaints' });
+  }
+};
+
+// Add a message to a complaint
+export const addComplaintMessage = async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { message } = req.body;
+  const sender_id = req.user?.user_id;
+  const sender_role = req.user?.role;
+  if (!message) return res.status(400).json({ message: "Message required" });
+  await db.insert(complaint_messages).values({
+    complaint_id: parseInt(id),
+    sender_id,
+    sender_role,
+    message
+  });
+  res.status(201).json({ message: "Message added" });
+};
+
+// Get all messages for a complaint
+export const getComplaintMessages = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const messages = await db.query.complaint_messages.findMany({
+      where: eq(complaint_messages.complaint_id, parseInt(id)),
+      orderBy: complaint_messages.created_at
+    });
+    res.json(messages); // Always return array, even if empty
+  } catch (err) {
+    console.error('getComplaintMessages error:', err);
+    res.status(500).json({ message: 'Failed to fetch complaint messages' });
   }
 };

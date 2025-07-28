@@ -2,8 +2,9 @@ import express from "express";
 import { createPaymentSession, confirmPayment, getPaymentHistory, getPaymentByAppointment, updatePayment, deletePayment } from "../../controllers/paymentController";
 import { verifyToken, requireRole } from "../../middleware/authMiddleware";
 import PDFDocument from 'pdfkit';
-import fs from 'fs';
 import { db } from '../../config/db';
+import { payments } from '../../models/schema';
+import { eq } from 'drizzle-orm';
 
 const router = express.Router();
 router.use(verifyToken);
@@ -23,16 +24,35 @@ router.get("/appointment/:appointmentId", requireRole("user"), getPaymentByAppoi
 // Payment receipt endpoint (PDF)
 router.get('/:id/receipt', requireRole('user'), async (req, res) => {
   const { id } = req.params;
+  console.log('Receipt request for payment ID:', id);
+  
   try {
+    // Validate payment ID
+    const paymentId = parseInt(id);
+    if (isNaN(paymentId)) {
+      console.log('Invalid payment ID:', id);
+      res.status(400).send('Invalid payment ID');
+      return;
+    }
+    
+    console.log('Looking for payment with ID:', paymentId);
+    
     // Fetch payment details from DB
     const payment = await db.query.payments.findFirst({
-      where: (p) => p.payment_id === parseInt(id),
+      where: eq(payments.payment_id, paymentId),
       with: { appointment: true }
     });
+    
+    console.log('Payment found:', payment);
+    
     if (!payment) {
+      console.log('Payment not found for ID:', paymentId);
       res.status(404).send('Payment not found');
       return;
     }
+    
+    console.log('Generating PDF for payment:', payment.payment_id);
+    
     // Generate PDF
     const doc = new PDFDocument({ margin: 40 });
     const buffers: Buffer[] = [];
@@ -63,6 +83,7 @@ router.get('/:id/receipt', requireRole('user'), async (req, res) => {
     doc.fontSize(10).fillColor('gray').text('MediCare - Your trusted medical appointment system', { align: 'center' });
     doc.end();
   } catch (err) {
+    console.error('Receipt generation error:', err);
     res.status(500).send('Failed to generate receipt');
   }
 });

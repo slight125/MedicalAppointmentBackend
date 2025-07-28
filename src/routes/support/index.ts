@@ -5,7 +5,10 @@ import {
   updateComplaintStatus,
   deleteComplaint,
   getUserComplaints,
-  updateComplaint
+  updateComplaint,
+  getDoctorComplaints,
+  addComplaintMessage,
+  getComplaintMessages
 } from "../../controllers/complaintsController";
 import { verifyToken, requireRole, allowRoles } from "../../middleware/authMiddleware";
 
@@ -28,7 +31,13 @@ router.patch("/:id/status", requireRole("admin"), asyncHandler(updateComplaintSt
 // User edits their own complaint
 router.patch("/:id", requireRole("user"), asyncHandler(updateComplaint));
 
+// Doctor views complaints for their patients
+router.get("/doctor", requireRole("doctor"), asyncHandler(getDoctorComplaints));
+
 // Delete complaint (admin or user)
 router.delete("/:id", allowRoles("admin", "user"), asyncHandler(deleteComplaint));
+
+router.get('/:id/messages', asyncHandler(getComplaintMessages));
+router.post('/:id/messages', verifyToken, asyncHandler(addComplaintMessage));
 
 export default router;
