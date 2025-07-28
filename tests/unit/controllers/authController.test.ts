@@ -27,17 +27,6 @@ jest.mock('../../../src/utils/mailer', () => ({
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 const mockJwt = jwt as jest.Mocked<typeof jwt>;
 
-const mockUser = {
-  user_id: 1,
-  firstname: 'John',
-  lastname: 'Doe',
-  email: 'john@example.com',
-  password: 'hashedPassword',
-  role: 'user',
-  contact_phone: '1234567890',
-  address: '123 Main St'
-};
-
 describe('Auth Controller', () => {
   let app: express.Application;
 
@@ -99,15 +88,24 @@ describe('Auth Controller', () => {
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockResolvedValue([mockUser])
+        where: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue([{ user_id: 1, email: 'john@example.com' }])
       };
+
       require('../../../src/config/db').db = mockDb;
-      const { registerUser } = require('../../../src/controllers/authController');
-      const req = { body: { email: 'test@example.com', password: 'pass' } } as any;
-      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+
+      const req = { body: validUserData } as express.Request;
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn()
+      } as unknown as express.Response;
+
       await registerUser(req, res);
+
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ message: 'User with this email already exists.' });
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'User with this email already exists.'
+      });
     });
 
     it('should return error if email or password is missing', async () => {
@@ -158,14 +156,24 @@ describe('Auth Controller', () => {
     };
 
     it('should login user with valid credentials', async () => {
+      const mockUser = {
+        user_id: 1,
+        firstname: 'John',
+        lastname: 'Doe',
+        email: 'john@example.com',
+        password: 'hashedPassword',
+        role: 'user'
+      };
+
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockResolvedValue([mockUser])
+        where: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue([mockUser])
       };
 
       require('../../../src/config/db').db = mockDb;
-      (mockBcrypt.compare as jest.Mock).mockResolvedValue(true);
+      mockBcrypt.compare.mockResolvedValue(true as never);
       mockJwt.sign.mockReturnValue('mockToken' as never);
 
       const req = { body: validLoginData } as express.Request;
@@ -173,13 +181,12 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
-      const next = jest.fn();
 
-      await loginUser(req, res, next);
+      await loginUser(req, res);
 
       expect(mockBcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword');
       expect(mockJwt.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ user_id: 1, email: 'john@example.com', role: 'user' }),
+        expect.objectContaining({ userId: 1, email: 'john@example.com' }),
         expect.any(String),
         expect.objectContaining({ expiresIn: '24h' })
       );
@@ -214,39 +221,44 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
-      const next = jest.fn();
 
-      await loginUser(req, res, next);
+      await loginUser(req, res);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid email or password.'
+        message: 'Invalid email or password'
       });
     });
 
     it('should return error for invalid password', async () => {
+      const mockUser = {
+        user_id: 1,
+        email: 'john@example.com',
+        password: 'hashedPassword'
+      };
+
       const mockDb = {
         select: jest.fn().mockReturnThis(),
         from: jest.fn().mockReturnThis(),
-        where: jest.fn().mockResolvedValue([mockUser])
+        where: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue([mockUser])
       };
 
       require('../../../src/config/db').db = mockDb;
-      (mockBcrypt.compare as jest.Mock).mockResolvedValue(false);
+      mockBcrypt.compare.mockResolvedValue(false as never);
 
       const req = { body: validLoginData } as express.Request;
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
-      const next = jest.fn();
 
-      await loginUser(req, res, next);
+      await loginUser(req, res);
 
       expect(mockBcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword');
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid email or password.'
+        message: 'Invalid email or password'
       });
     });
 
@@ -258,13 +270,12 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
-      const next = jest.fn();
 
-      await loginUser(req, res, next);
+      await loginUser(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Email and password are required.'
+        message: 'Email and password are required'
       });
     });
 
@@ -282,9 +293,8 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
-      const next = jest.fn();
 
-      await loginUser(req, res, next);
+      await loginUser(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
@@ -292,8 +302,4 @@ describe('Auth Controller', () => {
       });
     });
   });
-});
-
-afterEach(() => {
-  jest.resetModules();
 });

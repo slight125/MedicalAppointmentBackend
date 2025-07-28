@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import type { RequestHandler } from "express";
 import type { AuthenticatedRequest } from "../../controllers/appointmentsController";
 import { db } from "../../config/db";
@@ -130,12 +130,12 @@ router.get("/performance", verifyToken, requireRole("doctor"), async (req: Authe
 });
 
 // PATCH doctor fee
-router.patch('/:doctor_id/fee', verifyToken, requireRole(['admin', 'doctor']), asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+router.patch('/:doctor_id/fee', verifyToken, requireRole(['admin', 'doctor']), asyncHandler(async (req, res, next) => {
   await updateDoctorFee(req as import('../../controllers/appointmentsController').AuthenticatedRequest, res as import('express').Response);
 }));
 
 // Get doctor profile by user_id
-router.get('/profile-by-user/:user_id', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+router.get('/profile-by-user/:user_id', asyncHandler(async (req, res, next) => {
   const { user_id } = (req as import('express').Request).params;
   const doctor = await db.query.doctors.findFirst({ where: eq(doctors.user_id, Number(user_id)) });
   (res as import('express').Response).json(doctor);
