@@ -189,7 +189,7 @@ describe('Auth Controller', () => {
 
       expect(mockBcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword');
       expect(mockJwt.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 1, email: 'john@example.com' }),
+        expect.objectContaining({ user_id: 1, email: 'john@example.com', role: 'user' }),
         expect.any(String),
         expect.objectContaining({ expiresIn: '24h' })
       );
