@@ -230,7 +230,7 @@ describe('Auth Controller', () => {
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid email or password'
+        message: 'Invalid email or password.'
       });
     });
 
@@ -257,7 +257,7 @@ describe('Auth Controller', () => {
       expect(mockBcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword');
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid email or password'
+        message: 'Invalid email or password.'
       });
     });
 
@@ -275,7 +275,7 @@ describe('Auth Controller', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Email and password are required'
+        message: 'Email and password are required.'
       });
     });
 
