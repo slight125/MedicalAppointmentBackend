@@ -308,3 +308,7 @@ describe('Auth Controller', () => {
     });
   });
 });
+
+afterEach(() => {
+  jest.resetModules();
+});
