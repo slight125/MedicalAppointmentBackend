@@ -70,7 +70,7 @@ const seed = async () => {
   const appointmentStatuses = ["Completed", "Confirmed", "Pending", "Cancelled"];
   const timeSlots = ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM", "04:00 PM"];
   const appointmentSeed = [];
-  const userPatients = insertedUsers.filter(u => u.role === "user");
+  const userPatients = insertedUsers.filter((u: any) => u.role === "user");
 
   for (const doctor of insertedDoctors) {
     for (let j = 0; j < 10; j++) {
@@ -110,8 +110,8 @@ const seed = async () => {
   console.log(`Inserted appointments: ${insertedAppointments.length}`);
 
   for (const user of userPatients) {
-    let userAppointments = insertedAppointments.filter(a => a.user_id === user.user_id);
-    let completed = userAppointments.filter(a => a.appointment_status === "Completed");
+    let userAppointments = insertedAppointments.filter((a: any) => a.user_id === user.user_id);
+    let completed = userAppointments.filter((a: any) => a.appointment_status === "Completed");
     if (completed.length < 2) {
       for (let i = 0; i < userAppointments.length && completed.length < 2; i++) {
         if (userAppointments[i].appointment_status !== "Completed") {
@@ -131,10 +131,10 @@ const seed = async () => {
   const prescriptionSeed = [];
 
   // Ensure Alice gets some prescriptions
-  const alice = insertedUsers.find(u => u.email === 'alice@example.com');
+  const alice = insertedUsers.find((u: any) => u.email === 'alice@example.com');
   if (alice) {
-    const aliceAppointments = insertedAppointments.filter(a => a.user_id === alice.user_id);
-    const completedAppointments = aliceAppointments.filter(a => a.appointment_status === "Completed");
+    const aliceAppointments = insertedAppointments.filter((a: any) => a.user_id === alice.user_id);
+    const completedAppointments = aliceAppointments.filter((a: any) => a.appointment_status === "Completed");
     
     // If Alice doesn't have completed appointments, mark some as completed
     if (completedAppointments.length === 0 && aliceAppointments.length > 0) {
@@ -148,7 +148,7 @@ const seed = async () => {
     }
     
     // Create prescriptions for Alice
-    const aliceCompletedAppointments = insertedAppointments.filter(a => 
+    const aliceCompletedAppointments = insertedAppointments.filter((a: any) => 
       a.user_id === alice.user_id && a.appointment_status === "Completed"
     );
     
@@ -171,7 +171,7 @@ const seed = async () => {
   }
 
   for (const doctor of insertedDoctors) {
-    const doctorAppointments = insertedAppointments.filter(a => a.doctor_id === doctor.doctor_id && a.appointment_status === "Completed");
+    const doctorAppointments = insertedAppointments.filter((a: any) => a.doctor_id === doctor.doctor_id && a.appointment_status === "Completed");
     if (!doctorAppointments || doctorAppointments.length === 0) continue;
     for (let i = 0; i < Math.max(8, doctorAppointments.length); i++) {
       const appt = doctorAppointments[i % doctorAppointments.length];
@@ -193,7 +193,7 @@ const seed = async () => {
   } // ✅ ← This closing brace was missing before!
 
   for (const user of userPatients) {
-    const userCompleted = insertedAppointments.filter(a => a.user_id === user.user_id && a.appointment_status === "Completed");
+    const userCompleted = insertedAppointments.filter((a: any) => a.user_id === user.user_id && a.appointment_status === "Completed");
     for (let i = 0; i < Math.max(2, userCompleted.length); i++) {
       const appt = userCompleted[i % userCompleted.length];
       if (!appt) continue;
@@ -217,7 +217,7 @@ const seed = async () => {
   console.log(`Inserted prescriptions: ${prescriptionCount.length}`);
 
   // --- PAYMENTS ---
-  const paymentSeed = insertedAppointments.map((appt, i) => ({
+  const paymentSeed = insertedAppointments.map((appt: any, i: any) => ({
     appointment_id: appt.appointment_id,
     amount: appt.total_amount,
     payment_status: i % 3 === 0 ? "completed" : i % 3 === 1 ? "pending" : "failed",
@@ -233,7 +233,7 @@ const seed = async () => {
   const complaintPriorities = ["low", "medium", "high", "urgent"];
   const complaintSeed = [];
   for (const user of userPatients) {
-    const userAppointments = insertedAppointments.filter(a => a.user_id === user.user_id);
+    const userAppointments = insertedAppointments.filter((a: any) => a.user_id === user.user_id);
     for (let c = 0; c < 5; c++) {
       const appt = userAppointments[Math.floor(Math.random() * userAppointments.length)];
       if (!appt) continue;

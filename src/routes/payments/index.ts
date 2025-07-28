@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { createPaymentSession, confirmPayment, getPaymentHistory, getPaymentByAppointment, updatePayment, deletePayment } from "../../controllers/paymentController";
 import { verifyToken, requireRole } from "../../middleware/authMiddleware";
 import PDFDocument from 'pdfkit';
@@ -22,7 +22,7 @@ router.get("/history", requireRole("user"), getPaymentHistory);
 router.get("/appointment/:appointmentId", requireRole("user"), getPaymentByAppointment);
 
 // Payment receipt endpoint (PDF)
-router.get('/:id/receipt', requireRole('user'), async (req, res) => {
+router.get('/:id/receipt', requireRole('user'), async (req: Request, res: Response) => {
   const { id } = req.params;
   console.log('Receipt request for payment ID:', id);
   

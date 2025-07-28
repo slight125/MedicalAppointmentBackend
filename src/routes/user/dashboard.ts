@@ -1,6 +1,6 @@
-import express, { RequestHandler } from "express";
+import express, { Request, Response, NextFunction } from "express";
+import { Router } from "express";
 import { verifyToken, requireRole } from "../../middleware/authMiddleware";
-import { Request, Response, NextFunction } from "express";
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 const asyncHandler = (fn: any) => (req: express.Request, res: express.Response, next: express.NextFunction) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-router.use(verifyToken as RequestHandler);
+router.use(verifyToken as express.RequestHandler);
 
 // User-only access
 router.get("/dashboard", requireRole("user"), asyncHandler((req: Request, res: Response) => {

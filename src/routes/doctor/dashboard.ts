@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import type { RequestHandler } from "express";
 import type { AuthenticatedRequest } from "../../controllers/appointmentsController";
 import { db } from "../../config/db";
@@ -14,7 +14,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 // Doctor-only dashboard
-router.get("/dashboard", requireRole("doctor"), (req, res) => {
+router.get("/dashboard", requireRole("doctor"), (req: Request, res: Response) => {
   res.json({
     message: "Welcome Doctor 👨‍⚕️",
     patientsToday: 12,
@@ -114,13 +114,13 @@ router.get("/performance", verifyToken, requireRole("doctor"), async (req: Authe
       gte(appointments.appointment_date, startOfWeekStr)
     )
   });
-  const appointmentIds = doctorAppointments.map(a => a.appointment_id);
+  const appointmentIds = doctorAppointments.map((a: any) => a.appointment_id);
   let revenue = 0;
   if (appointmentIds.length > 0) {
     const paymentRows = await db.query.payments.findMany({
       where: inArray(payments.appointment_id, appointmentIds)
     });
-    revenue = paymentRows.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    revenue = paymentRows.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
   }
   
   // Average consultation time (stub: 25 min per appointment)
@@ -130,15 +130,15 @@ router.get("/performance", verifyToken, requireRole("doctor"), async (req: Authe
 });
 
 // PATCH doctor fee
-router.patch('/:doctor_id/fee', verifyToken, requireRole(['admin', 'doctor']), asyncHandler(async (req, res, next) => {
-  await updateDoctorFee(req as import('../../controllers/appointmentsController').AuthenticatedRequest, res as import('express').Response);
+router.patch('/:doctor_id/fee', verifyToken, requireRole(['admin', 'doctor']), asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  await updateDoctorFee(req as AuthenticatedRequest, res as Response);
 }));
 
 // Get doctor profile by user_id
-router.get('/profile-by-user/:user_id', asyncHandler(async (req, res, next) => {
-  const { user_id } = (req as import('express').Request).params;
+router.get('/profile-by-user/:user_id', asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { user_id } = req.params;
   const doctor = await db.query.doctors.findFirst({ where: eq(doctors.user_id, Number(user_id)) });
-  (res as import('express').Response).json(doctor);
+  res.json(doctor);
 }));
 
 export default router;

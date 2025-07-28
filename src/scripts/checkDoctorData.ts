@@ -7,26 +7,26 @@ async function checkDoctorData() {
   // 1. Doctors without a user
   const allDoctors = await db.select().from(doctors);
   const allUsers = await db.select().from(users);
-  const userIds = new Set(allUsers.map(u => u.user_id));
-  const doctorsWithoutUser = allDoctors.filter(d => d.user_id != null && !userIds.has(d.user_id));
+  const userIds = new Set(allUsers.map((u: any) => u.user_id));
+  const doctorsWithoutUser = allDoctors.filter((d: any) => d.user_id != null && !userIds.has(d.user_id));
 
   // 2. Users with doctor role but no doctor profile
-  const doctorRoleUsers = allUsers.filter(u => u.role === 'doctor');
-  const doctorUserIds = new Set(allDoctors.map(d => d.user_id).filter((id): id is number => id !== null));
-  const usersWithoutDoctorProfile = doctorRoleUsers.filter(u => !doctorUserIds.has(u.user_id));
+  const doctorRoleUsers = allUsers.filter((u: any) => u.role === 'doctor');
+  const doctorUserIds = new Set(allDoctors.map((d: any) => d.user_id).filter((id: any): id is number => id !== null));
+  const usersWithoutDoctorProfile = doctorRoleUsers.filter((u: any) => !doctorUserIds.has(u.user_id));
 
   // 3. Appointments with invalid doctor_id
   const allAppointments = await db.select().from(appointments);
-  const doctorIds = new Set(allDoctors.map(d => d.doctor_id));
+  const doctorIds = new Set(allDoctors.map((d: any) => d.doctor_id));
   const appointmentsWithInvalidDoctor = allAppointments.filter(
-    a => a.doctor_id == null || !doctorIds.has(a.doctor_id as number)
+    (a: any) => a.doctor_id == null || !doctorIds.has(a.doctor_id as number)
   );
 
   // 4. Complaints with null or invalid related_appointment_id
   const allComplaints = await db.select().from(complaints);
-  const appointmentIds = new Set(allAppointments.map(a => a.appointment_id));
-  const complaintsWithNullAppointment = allComplaints.filter(c => c.related_appointment_id == null);
-  const complaintsWithInvalidAppointment = allComplaints.filter(c => c.related_appointment_id != null && !appointmentIds.has(c.related_appointment_id));
+  const appointmentIds = new Set(allAppointments.map((a: any) => a.appointment_id));
+  const complaintsWithNullAppointment = allComplaints.filter((c: any) => c.related_appointment_id == null);
+  const complaintsWithInvalidAppointment = allComplaints.filter((c: any) => c.related_appointment_id != null && !appointmentIds.has(c.related_appointment_id));
 
   console.log('--- Doctor Data Check ---');
   console.log('Doctors without a user:', doctorsWithoutUser);
