@@ -181,8 +181,9 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
+      const next = jest.fn();
 
-      await loginUser(req, res);
+      await loginUser(req, res, next);
 
       expect(mockBcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword');
       expect(mockJwt.sign).toHaveBeenCalledWith(
@@ -221,8 +222,9 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
+      const next = jest.fn();
 
-      await loginUser(req, res);
+      await loginUser(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
@@ -252,8 +254,9 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
+      const next = jest.fn();
 
-      await loginUser(req, res);
+      await loginUser(req, res, next);
 
       expect(mockBcrypt.compare).toHaveBeenCalledWith('password123', 'hashedPassword');
       expect(res.status).toHaveBeenCalledWith(401);
@@ -270,8 +273,9 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
+      const next = jest.fn();
 
-      await loginUser(req, res);
+      await loginUser(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
@@ -293,8 +297,9 @@ describe('Auth Controller', () => {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       } as unknown as express.Response;
+      const next = jest.fn();
 
-      await loginUser(req, res);
+      await loginUser(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
