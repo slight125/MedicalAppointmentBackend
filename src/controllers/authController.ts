@@ -56,7 +56,7 @@ export const registerUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
-    res.status(500).json({ message: "Registration failed due to a server error." });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -98,6 +98,6 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Login failed due to a server error." });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
