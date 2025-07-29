@@ -5,6 +5,7 @@ import { db } from '../../config/db';
 import { users } from '../../models/schema';
 import bcrypt from 'bcrypt';
 import axios from 'axios';
+import { eq } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.patch("/profile", asyncHandler(async (req: Request, res: Response) => {
   if (address !== undefined) updateData.address = address;
   if (profile_picture_url !== undefined) updateData.profile_picture_url = profile_picture_url;
   updateData.updated_at = new Date();
-  await db.update(users).set(updateData).where(users.user_id.eq(user.user_id));
+  await db.update(users).set(updateData).where(eq(users.user_id, user.user_id));
   res.json({ success: true, message: "Profile updated" });
 }));
 
@@ -68,12 +69,12 @@ router.post("/change-password", asyncHandler(async (req: Request, res: Response)
   if (!user) return res.status(401).json({ message: "Unauthorized" });
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return res.status(400).json({ message: "Both current and new password are required." });
-  const [dbUser] = await db.select().from(users).where(users.user_id.eq(user.user_id));
+  const [dbUser] = await db.select().from(users).where(eq(users.user_id, user.user_id));
   if (!dbUser) return res.status(404).json({ message: "User not found" });
-  const match = await bcrypt.compare(currentPassword, dbUser.password);
+  const match = await bcrypt.compare(String(currentPassword), String(dbUser.password));
   if (!match) return res.status(403).json({ message: "Current password is incorrect" });
   const hashed = await bcrypt.hash(newPassword, 10);
-  await db.update(users).set({ password: hashed, updated_at: new Date() }).where(users.user_id.eq(user.user_id));
+  await db.update(users).set({ password: hashed, updated_at: new Date() }).where(eq(users.user_id, user.user_id));
   res.json({ success: true, message: "Password changed successfully" });
 }));
 
@@ -92,7 +93,7 @@ router.post("/profile-picture", asyncHandler(async (req: Request, res: Response)
     { headers: { 'Content-Type': 'application/json' } }
   );
   const url = uploadRes.data.secure_url;
-  await db.update(users).set({ profile_picture_url: url, updated_at: new Date() }).where(users.user_id.eq(user.user_id));
+  await db.update(users).set({ profile_picture_url: url, updated_at: new Date() }).where(eq(users.user_id, user.user_id));
   res.json({ success: true, url });
 }));
 
