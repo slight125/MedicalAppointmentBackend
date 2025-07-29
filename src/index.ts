@@ -34,7 +34,8 @@ app.locals.db = db;
 app.use(cors({
   origin: [
     "https://medical-appointment-frontend-h825q5dg7.vercel.app",
-    "https://medical-appointment-frontend-m7m3innov.vercel.app"
+    "https://medical-appointment-frontend-m7m3innov.vercel.app",
+    "https://medical-appointment-frontend-j8d21qfjfjf.vercel.app"
   ]
 }));
 
