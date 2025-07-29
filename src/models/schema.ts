@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   role: varchar("role", { length: 20 }).default("user"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
+  profile_picture_url: varchar("profile_picture_url", { length: 255 }),
 });
 
 // Doctors Table
